@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>人生地圖</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;700&family=Noto+Sans+TC:wght@300;400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0c0d10;color:#e2dfd8;font-family:'Noto Sans TC',sans-serif;font-weight:300;min-height:100vh;overflow-x:hidden}
+.page{position:relative;z-index:1;padding:36px 24px 56px;max-width:1020px;margin:0 auto}
+
+header{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:28px;padding-bottom:18px;border-bottom:1px solid rgba(255,255,255,.07);flex-wrap:wrap;gap:12px}
+h1{font-family:'Noto Serif TC',serif;font-size:1.9rem;font-weight:700;letter-spacing:.06em}
+.sub{margin-top:4px;font-size:.72rem;color:rgba(226,223,216,.35);letter-spacing:.14em;text-transform:uppercase}
+.badge{display:flex;align-items:center;gap:7px;font-size:.76rem;color:#c9a84c;letter-spacing:.05em}
+.dot{width:7px;height:7px;border-radius:50%;background:#c9a84c;animation:bdot 2s ease-in-out infinite}
+@keyframes bdot{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.35;transform:scale(.6)}}
+
+.legend{display:flex;flex-wrap:wrap;gap:7px 20px;margin-bottom:24px;padding:4px 0;font-size:.7rem;color:rgba(226,223,216,.36)}
+.li{display:flex;align-items:center;gap:6px}
+.ld{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+
+/* MAP */
+.map-wrap{position:relative;width:100%;user-select:none}
+#bgCanvas{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:0}
+#edgeCanvas{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:1}
+
+/* NODE CARDS — absolutely positioned, moved by JS */
+.node-el{
+  position:absolute;z-index:2;
+  background:rgba(18,20,28,.82);
+  border:1px solid rgba(255,255,255,.1);
+  border-radius:14px;
+  padding:11px 14px 10px;
+  cursor:default;
+  backdrop-filter:blur(4px);
+  transition:border-color .35s,background .35s,box-shadow .35s,opacity .35s;
+  opacity:.85;
+  will-change:transform;
+}
+.node-el.hovered{
+  border-color:var(--nc);
+  box-shadow:0 0 32px var(--ng),0 0 8px var(--ng);
+  background:var(--nd);
+  opacity:1;z-index:10;
+}
+.node-el.influenced{
+  border-color:var(--nc);
+  box-shadow:0 0 14px var(--ng);
+  opacity:1;
+}
+.node-el.dimmed{opacity:.2}
+
+.n-icon-row{display:flex;align-items:center;gap:8px;margin-bottom:5px}
+.n-icon{width:28px;height:28px;border-radius:8px;background:var(--nd);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.n-icon i{font-size:15px;color:var(--nc)}
+.n-title{font-family:'Noto Serif TC',serif;font-size:.88rem;font-weight:700;color:#e2dfd8;letter-spacing:.04em;white-space:nowrap}
+.n-subdesc{
+  font-size:.62rem;color:rgba(226,223,216,0);
+  line-height:1.55;max-height:0;overflow:hidden;
+  transition:color .3s,max-height .3s,margin-top .3s;
+}
+.node-el.hovered .n-subdesc,.node-el.influenced .n-subdesc{
+  color:rgba(226,223,216,.5);max-height:48px;margin-top:6px;
+}
+
+/* PANEL */
+.panel{
+  margin-top:20px;background:#161820;border:1px solid rgba(255,255,255,.07);
+  border-radius:14px;padding:16px 20px;
+  opacity:0;transition:opacity .35s;min-height:56px;
+}
+.panel.visible{opacity:1}
+.panel-explain{font-size:.84rem;color:rgba(226,223,216,.72);line-height:2;letter-spacing:.03em}
+</style>
+</head>
+<body>
+<div class="page">
+
+<header>
+  <div>
+    <h1>人生地圖</h1>
+    <div class="sub">Life Operating System · 移入節點查看影響路徑</div>
+  </div>
+  <div class="badge">
+    <div class="dot"></div>
+    <span id="badge-txt">將滑鼠移到節點上</span>
+  </div>
+</header>
+
+<div class="legend">
+  <div class="li"><div class="ld" style="background:#c9a84c"></div>核心系統</div>
+  <div class="li"><div class="ld" style="background:#4db8a0"></div>身心健康</div>
+  <div class="li"><div class="ld" style="background:#6ea8d8"></div>知識成長</div>
+  <div class="li"><div class="ld" style="background:#9b84cc"></div>職涯發展</div>
+  <div class="li"><div class="ld" style="background:#d4964a"></div>生活習慣</div>
+  <div class="li"><div class="ld" style="background:#e07060"></div>工作環境</div>
+  <div class="li"><div class="ld" style="background:#7bc8a4"></div>財務基礎</div>
+  <div class="li" style="margin-left:4px;gap:8px">
+    <svg width="26" height="10" overflow="visible"><defs><marker id="la" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="rgba(255,255,255,.5)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker></defs><line x1="0" y1="5" x2="22" y2="5" stroke="rgba(255,255,255,.5)" stroke-width="1.3" marker-end="url(#la)"/></svg>直接
+  </div>
+  <div class="li" style="gap:8px">
+    <svg width="26" height="10" overflow="visible"><defs><marker id="lb" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="rgba(255,255,255,.3)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker></defs><line x1="0" y1="5" x2="22" y2="5" stroke="rgba(255,255,255,.3)" stroke-width="1" stroke-dasharray="4 3" marker-end="url(#lb)"/></svg>間接
+  </div>
+</div>
+
+<div class="map-wrap" id="mapWrap">
+  <canvas id="bgCanvas"></canvas>
+  <canvas id="edgeCanvas"></canvas>
+</div>
+
+<div class="panel" id="panel">
+  <div id="panel-content"></div>
+</div>
+
+</div>
+<script>
+const NODES=[
+  {id:'mindset',title:'正向思考',icon:'ti-brain',color:'#d4964a',dim:'rgba(212,150,74,.14)',glow:'rgba(212,150,74,.28)',subdesc:'心態是所有行動的底層土壤。',affects:['habits','health']},
+  {id:'habits',title:'好習慣',icon:'ti-refresh',color:'#d4964a',dim:'rgba(212,150,74,.14)',glow:'rgba(212,150,74,.28)',subdesc:'有趣的事持續做就成習慣。',affects:['outdoor','health','mentalh']},
+  {id:'social',title:'社交生活',icon:'ti-users',color:'#d4964a',dim:'rgba(212,150,74,.14)',glow:'rgba(212,150,74,.28)',subdesc:'人際連結是心理健康的養分。',affects:['mentalh','habits']},
+  {id:'health',title:'身心健康',icon:'ti-heart-rate-monitor',color:'#c9a84c',dim:'rgba(201,168,76,.13)',glow:'rgba(201,168,76,.4)',subdesc:'身、心、健康互為因果的中心。',affects:['knowledge','career','finance']},
+  {id:'outdoor',title:'戶外生活',icon:'ti-tree',color:'#4db8a0',dim:'rgba(77,184,160,.14)',glow:'rgba(77,184,160,.28)',subdesc:'直接修復身心的日常槓桿。',affects:['health','mentalh']},
+  {id:'mentalh',title:'心理健康',icon:'ti-mood-smile',color:'#4db8a0',dim:'rgba(77,184,160,.14)',glow:'rgba(77,184,160,.28)',subdesc:'決策品質與人際基調的根源。',affects:['health','habits']},
+  {id:'knowledge',title:'知識成長',icon:'ti-book',color:'#6ea8d8',dim:'rgba(110,168,216,.14)',glow:'rgba(110,168,216,.28)',subdesc:'筆記→知識→專長→選擇權。',affects:['career','work']},
+  {id:'career',title:'職涯發展',icon:'ti-briefcase',color:'#9b84cc',dim:'rgba(155,132,204,.14)',glow:'rgba(155,132,204,.28)',subdesc:'專長決定路徑，嗜好決定溫度。',affects:['finance','work','health']},
+  {id:'work',title:'工作環境',icon:'ti-building',color:'#e07060',dim:'rgba(224,112,96,.14)',glow:'rgba(224,112,96,.28)',subdesc:'每天生活品質的五個維度。',affects:['health','habits','knowledge']},
+  {id:'finance',title:'財務基礎',icon:'ti-coin',color:'#7bc8a4',dim:'rgba(123,200,164,.14)',glow:'rgba(123,200,164,.28)',subdesc:'穩定財務帶來心理餘裕。',affects:['health','mentalh']}
+];
+
+const EDGES=[
+  ['mindset','habits','direct'],['mindset','health','indirect'],
+  ['habits','outdoor','direct'],['habits','health','direct'],['habits','mentalh','indirect'],
+  ['social','mentalh','direct'],['social','habits','indirect'],
+  ['outdoor','health','direct'],['outdoor','mentalh','direct'],
+  ['mentalh','health','direct'],['mentalh','habits','indirect'],
+  ['knowledge','career','direct'],['knowledge','work','indirect'],
+  ['career','finance','direct'],['career','work','indirect'],['career','health','indirect'],
+  ['work','health','direct'],['work','habits','direct'],['work','knowledge','indirect'],
+  ['finance','health','direct'],['finance','mentalh','direct'],
+  ['health','knowledge','indirect'],['health','career','indirect'],
+];
+
+const LAYOUT={
+  mindset:{px:.08,py:.72},habits:{px:.26,py:.56},social:{px:.08,py:.34},
+  health:{px:.46,py:.43},outdoor:{px:.27,py:.80},mentalh:{px:.27,py:.20},
+  knowledge:{px:.65,py:.18},career:{px:.78,py:.43},work:{px:.65,py:.68},finance:{px:.83,py:.74}
+};
+
+const EXPLAIN={
+  mindset:'正向思考是整個系統的根基。當情緒穩定、心態開放，行動力自然提升，好習慣更容易建立，身心健康也間接受益。',
+  habits:'好習慣每天積累，直接推動戶外生活的實踐，進而改善身體健康與心理狀態。習慣是成本最低、效果最持久的系統槓桿。',
+  social:'社交連結直接滋養心理健康，減少孤立感與壓力；同時也透過共同習慣與相互督促，間接強化好習慣的養成。',
+  health:'身心健康是整個地圖的核心樞紐。當身體和心理狀態良好，知識吸收效率提升，職涯發展有更多能量，財務判斷也更清晰。',
+  outdoor:'戶外生活直接強化體能與情緒調節，對身心健康與心理健康都有立即性的正向回饋，是最容易被忽略的日常修復途徑。',
+  mentalh:'心理健康的穩定直接影響身心整體狀態，並透過情緒調節間接幫助維持好習慣。內在平靜是持續前進的底層支撐。',
+  knowledge:'知識的積累直接轉化為職涯競爭力，同時透過對產業與工作的理解，間接提升工作環境的選擇品質。',
+  career:'職涯發展直接帶動財務成長，並影響工作環境的選擇。職涯狀態也間接反映在身心健康上——成就感與倦怠感都從這裡來。',
+  work:'工作環境直接影響每日的身心狀態與習慣品質；同時，工作內容也間接影響知識積累的方向與深度。',
+  finance:'財務穩定直接降低生存焦慮，讓身心有餘裕；充足的安全感也強化心理健康，形成正向循環。'
+};
+
+// ── STATE ──────────────────────────────────────────────────────
+let W=0,H=0;
+let currentHover=null;
+let hoverTimer=null;
+const nodeEls={};
+
+// Each node has a floating physics state
+const nodeState={};
+
+// ── CANVAS SETUP ───────────────────────────────────────────────
+const bgCv=document.getElementById('bgCanvas');
+const bgCtx=bgCv.getContext('2d');
+const edCv=document.getElementById('edgeCanvas');
+const edCtx=edCv.getContext('2d');
+
+function resizeCanvases(){
+  const wrap=document.getElementById('mapWrap');
+  W=wrap.offsetWidth;
+  H=Math.max(500,W*0.72);
+  wrap.style.height=H+'px';
+  bgCv.width=edCv.width=W;
+  bgCv.height=edCv.height=H;
+}
+
+// ── BACKGROUND PARTICLES ───────────────────────────────────────
+const PCOLS=['#d4964a','#c9a84c','#4db8a0','#6ea8d8','#9b84cc','#e07060','#7bc8a4'];
+let bgParticles=[];
+
+function spawnBgParticles(){
+  bgParticles=[];
+  const n=Math.floor(W*H/4000);
+  for(let i=0;i<n;i++){
+    bgParticles.push({
+      x:Math.random()*W,y:Math.random()*H,
+      vx:(Math.random()-.5)*.3,vy:(Math.random()-.5)*.3,
+      r:Math.random()*1.4+.3,
+      alpha:Math.random()*.35+.08,
+      col:PCOLS[Math.floor(Math.random()*PCOLS.length)],
+      ph:Math.random()*Math.PI*2,
+      phSpd:Math.random()*.012+.004
+    });
+  }
+}
+
+function drawBg(){
+  bgCtx.clearRect(0,0,W,H);
+  const dim=currentHover!==null;
+  bgParticles.forEach(p=>{
+    p.x+=p.vx;p.y+=p.vy;
+    if(p.x<0)p.x=W;if(p.x>W)p.x=0;
+    if(p.y<0)p.y=H;if(p.y>H)p.y=0;
+    p.ph+=p.phSpd;
+    const a=(p.alpha+Math.sin(p.ph)*.06)*(dim?.25:1);
+    const hex=Math.floor(a*255).toString(16).padStart(2,'0');
+    bgCtx.beginPath();
+    bgCtx.arc(p.x,p.y,p.r,0,Math.PI*2);
+    bgCtx.fillStyle=p.col+hex;
+    bgCtx.fill();
+  });
+  // faint particle web
+  if(!dim){
+    for(let i=0;i<bgParticles.length;i++){
+      for(let j=i+1;j<bgParticles.length;j++){
+        const dx=bgParticles[i].x-bgParticles[j].x;
+        const dy=bgParticles[i].y-bgParticles[j].y;
+        const d=Math.sqrt(dx*dx+dy*dy);
+        if(d<55){
+          bgCtx.beginPath();
+          bgCtx.moveTo(bgParticles[i].x,bgParticles[i].y);
+          bgCtx.lineTo(bgParticles[j].x,bgParticles[j].y);
+          bgCtx.strokeStyle=`rgba(255,255,255,${.05*(1-d/55)})`;
+          bgCtx.lineWidth=.35;
+          bgCtx.stroke();
+        }
+      }
+    }
+  }
+}
+
+// ── NODE FLOATING PHYSICS ──────────────────────────────────────
+function initNodeStates(){
+  NODES.forEach(n=>{
+    const lp=LAYOUT[n.id];
+    const el=nodeEls[n.id];
+    const ew=Math.max(el.offsetWidth,80)||130;
+    const eh=Math.max(el.offsetHeight,40)||80;
+    const baseX=Math.max(0,Math.min(lp.px*W-ew/2,W-ew));
+    const baseY=Math.max(0,Math.min(lp.py*H-eh/2,H-eh));
+    nodeState[n.id]={
+      x:baseX,y:baseY,baseX,baseY,ew,eh,
+      ampX:10+Math.random()*8,
+      ampY:8+Math.random()*7,
+      phX:Math.random()*Math.PI*2,
+      phY:Math.random()*Math.PI*2,
+      spdX:.0008+Math.random()*.0006,
+      spdY:.0007+Math.random()*.0005,
+      t:Math.random()*1000,
+      frozen:false
+    };
+  });
+}
+
+function updateNodePositions(){
+  NODES.forEach(n=>{
+    const s=nodeState[n.id];
+    const el=nodeEls[n.id];
+    if(s.frozen) return;
+    s.t+=1;
+    s.x=s.baseX+Math.sin(s.t*s.spdX+s.phX)*s.ampX;
+    s.y=s.baseY+Math.sin(s.t*s.spdY+s.phY)*s.ampY;
+    // clamp
+    s.x=Math.max(0,Math.min(s.x,W-s.ew));
+    s.y=Math.max(0,Math.min(s.y,H-s.eh));
+    el.style.left=s.x+'px';
+    el.style.top=s.y+'px';
+  });
+}
+
+// ── EDGE DRAWING (canvas) ──────────────────────────────────────
+function getCenter(id){
+  const s=nodeState[id];
+  return{x:s.x+s.ew/2,y:s.y+s.eh/2};
+}
+
+function rectEdgePt(id,tx,ty){
+  const s=nodeState[id];
+  const cx=s.x+s.ew/2,cy=s.y+s.eh/2;
+  const dx=tx-cx,dy=ty-cy;
+  if(!dx&&!dy)return{x:cx,y:cy};
+  const sc=Math.min((s.ew/2+6)/Math.abs(dx||.001),(s.eh/2+6)/Math.abs(dy||.001));
+  return{x:cx+dx*sc,y:cy+dy*sc};
+}
+
+function drawEdges(){
+  edCtx.clearRect(0,0,W,H);
+  if(!currentHover) return;
+
+  // arrowhead helper
+  function arrow(x2,y2,x1,y1,col,a){
+    const ang=Math.atan2(y2-y1,x2-x1);
+    const len=9,spread=.42;
+    edCtx.beginPath();
+    edCtx.moveTo(x2,y2);
+    edCtx.lineTo(x2-len*Math.cos(ang-spread),y2-len*Math.sin(ang-spread));
+    edCtx.moveTo(x2,y2);
+    edCtx.lineTo(x2-len*Math.cos(ang+spread),y2-len*Math.sin(ang+spread));
+    edCtx.strokeStyle=col;edCtx.globalAlpha=a;
+    edCtx.lineWidth=1.4;edCtx.stroke();
+    edCtx.globalAlpha=1;
+  }
+
+  EDGES.forEach(([from,to,type])=>{
+    if(!nodeState[from]||!nodeState[to]) return;
+    const c1=getCenter(from),c2=getCenter(to);
+    const p1=rectEdgePt(from,c2.x,c2.y);
+    const p2=rectEdgePt(to,c1.x,c1.y);
+    const mx=(p1.x+p2.x)/2,my=(p1.y+p2.y)/2;
+    const dx=p2.x-p1.x,dy=p2.y-p1.y;
+    const cpx=mx+(-dy)*.15,cpy=my+dx*.15;
+
+    const isActive=from===currentHover||to===currentHover;
+    const srcNode=NODES.find(x=>x.id===from);
+    const col=srcNode?srcNode.color:'#c9a84c';
+
+    edCtx.beginPath();
+    edCtx.moveTo(p1.x,p1.y);
+    edCtx.quadraticCurveTo(cpx,cpy,p2.x,p2.y);
+
+    if(isActive){
+      edCtx.globalAlpha=type==='direct'?.9:.55;
+      edCtx.strokeStyle=col;
+      edCtx.lineWidth=type==='direct'?2:1.4;
+      edCtx.setLineDash(type==='direct'?[]:[6,4]);
+      edCtx.stroke();
+      edCtx.setLineDash([]);
+      arrow(p2.x,p2.y,cpx,cpy,col,type==='direct'?.9:.55);
+    } else {
+      edCtx.globalAlpha=.06;
+      edCtx.strokeStyle='#ffffff';
+      edCtx.lineWidth=.7;
+      edCtx.setLineDash(type==='direct'?[]:[5,4]);
+      edCtx.stroke();
+      edCtx.setLineDash([]);
+      edCtx.globalAlpha=1;
+    }
+  });
+  edCtx.globalAlpha=1;
+}
+
+// ── BUILD NODE ELEMENTS ────────────────────────────────────────
+function buildNodes(){
+  const wrap=document.getElementById('mapWrap');
+  NODES.forEach(n=>{
+    const el=document.createElement('div');
+    el.className='node-el';el.id='nel-'+n.id;
+    el.style.setProperty('--nc',n.color);
+    el.style.setProperty('--nd',n.dim);
+    el.style.setProperty('--ng',n.glow);
+    el.innerHTML=`
+      <div class="n-icon-row">
+        <div class="n-icon"><i class="ti ${n.icon}" aria-hidden="true"></i></div>
+        <div class="n-title">${n.title}</div>
+      </div>
+      <div class="n-subdesc">${n.subdesc}</div>
+    `;
+    el.addEventListener('mouseenter',()=>{
+      clearTimeout(hoverTimer);
+      hoverTimer=setTimeout(()=>activate(n.id),40);
+    });
+    el.addEventListener('mouseleave',()=>{
+      clearTimeout(hoverTimer);
+      hoverTimer=setTimeout(deactivate,100);
+    });
+    wrap.appendChild(el);
+    nodeEls[n.id]=el;
+  });
+}
+
+// ── ACTIVATE / DEACTIVATE ──────────────────────────────────────
+function activate(id){
+  if(currentHover===id)return;
+  currentHover=id;
+  const n=NODES.find(x=>x.id===id);
+  const aff=new Set(n.affects);
+
+  NODES.forEach(nd=>{
+    const el=nodeEls[nd.id];
+    const s=nodeState[nd.id];
+    el.classList.remove('hovered','influenced','dimmed');
+    if(nd.id===id){
+      el.classList.add('hovered');
+      s.frozen=true;
+    } else if(aff.has(nd.id)){
+      el.classList.add('influenced');
+      s.frozen=true;
+    } else {
+      el.classList.add('dimmed');
+      s.frozen=false;
+    }
+  });
+
+  document.getElementById('badge-txt').textContent='正在看：'+n.title;
+  document.getElementById('panel-content').innerHTML=`<p class="panel-explain">${EXPLAIN[id]||''}</p>`;
+  document.getElementById('panel').classList.add('visible');
+}
+
+function deactivate(){
+  if(!currentHover)return;
+  currentHover=null;
+  NODES.forEach(n=>{
+    nodeEls[n.id].classList.remove('hovered','influenced','dimmed');
+    nodeState[n.id].frozen=false;
+  });
+  document.getElementById('badge-txt').textContent='將滑鼠移到節點上';
+  document.getElementById('panel-content').innerHTML='';
+  document.getElementById('panel').classList.remove('visible');
+}
+
+// ── MAIN LOOP ──────────────────────────────────────────────────
+function loop(){
+  drawBg();
+  updateNodePositions();
+  drawEdges();
+  requestAnimationFrame(loop);
+}
+
+// ── INIT ──────────────────────────────────────────────────────
+window.addEventListener('load',()=>{
+  buildNodes();
+  resizeCanvases();
+  spawnBgParticles();
+  // wait one frame so offsetWidth/Height are populated
+  // double-rAF ensures layout is fully painted before reading offsetWidth/Height
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{
+    initNodeStates();
+    NODES.forEach(n=>{
+      const s=nodeState[n.id];
+      nodeEls[n.id].style.left=s.x+'px';
+      nodeEls[n.id].style.top=s.y+'px';
+    });
+    loop();
+  }));
+
+  window.addEventListener('resize',()=>{
+    resizeCanvases();
+    spawnBgParticles();
+    NODES.forEach(n=>{
+      if(!nodeState[n.id]) return;
+      const lp=LAYOUT[n.id];
+      const el=nodeEls[n.id];
+      const s=nodeState[n.id];
+      s.ew=Math.max(el.offsetWidth,80)||130;
+      s.eh=Math.max(el.offsetHeight,40)||80;
+      s.baseX=Math.max(0,Math.min(lp.px*W-s.ew/2,W-s.ew));
+      s.baseY=Math.max(0,Math.min(lp.py*H-s.eh/2,H-s.eh));
+      s.x=s.baseX;s.y=s.baseY;
+    });
+  });
+});
+</script>
+</body>
+</html>
