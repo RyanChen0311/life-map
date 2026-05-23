@@ -9,22 +9,22 @@
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:#0c0d10;color:#e2dfd8;font-family:'Noto Sans TC',sans-serif;font-weight:300;min-height:100vh;overflow-x:hidden}
-.page{position:relative;z-index:1;padding:36px 24px 56px;max-width:1020px;margin:0 auto}
+.page{position:relative;z-index:1;padding:36px 24px 24px;max-width:1280px;margin:0 auto}
 
 header{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:28px;padding-bottom:18px;border-bottom:1px solid rgba(255,255,255,.07);flex-wrap:wrap;gap:12px}
-h1{font-family:'Noto Serif TC',serif;font-size:1.9rem;font-weight:700;letter-spacing:.06em}
-.sub{margin-top:4px;font-size:.72rem;color:rgba(226,223,216,.35);letter-spacing:.14em;text-transform:uppercase}
-.badge{display:flex;align-items:center;gap:7px;font-size:.76rem;color:#c9a84c;letter-spacing:.05em}
+h1{font-family:'Noto Serif TC',serif;font-size:2.28rem;font-weight:700;letter-spacing:.06em}
+.sub{margin-top:4px;font-size:.86rem;color:rgba(226,223,216,.35);letter-spacing:.14em;text-transform:uppercase}
+.badge{display:flex;align-items:center;gap:7px;font-size:.91rem;color:#c9a84c;letter-spacing:.05em}
 .dot{width:7px;height:7px;border-radius:50%;background:#c9a84c;animation:bdot 2s ease-in-out infinite}
 @keyframes bdot{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.35;transform:scale(.6)}}
 
-.legend{display:flex;flex-wrap:wrap;gap:7px 20px;margin-bottom:24px;padding:4px 0;font-size:.7rem;color:rgba(226,223,216,.36)}
+.legend{display:flex;flex-wrap:wrap;gap:7px 20px;margin-bottom:24px;padding:4px 0;font-size:.84rem;color:rgba(226,223,216,.36)}
 .li{display:flex;align-items:center;gap:6px}
 .ld{width:8px;height:8px;border-radius:50%;flex-shrink:0}
 
 /* MAP */
 .map-wrap{position:relative;width:100%;user-select:none}
-#bgCanvas{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:0}
+#bgCanvas{position:fixed;top:0;left:0;width:100vw;height:100vh;pointer-events:none;z-index:0}
 #edgeCanvas{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:1}
 
 /* NODE CARDS — absolutely positioned, moved by JS */
@@ -55,10 +55,10 @@ h1{font-family:'Noto Serif TC',serif;font-size:1.9rem;font-weight:700;letter-spa
 
 .n-icon-row{display:flex;align-items:center;gap:8px;margin-bottom:5px}
 .n-icon{width:28px;height:28px;border-radius:8px;background:var(--nd);display:flex;align-items:center;justify-content:center;flex-shrink:0}
-.n-icon i{font-size:15px;color:var(--nc)}
-.n-title{font-family:'Noto Serif TC',serif;font-size:.88rem;font-weight:700;color:#e2dfd8;letter-spacing:.04em;white-space:nowrap}
+.n-icon i{font-size:18px;color:var(--nc)}
+.n-title{font-family:'Noto Serif TC',serif;font-size:1.06rem;font-weight:700;color:#e2dfd8;letter-spacing:.04em;white-space:nowrap}
 .n-subdesc{
-  font-size:.62rem;color:rgba(226,223,216,0);
+  font-size:.74rem;color:rgba(226,223,216,0);
   line-height:1.55;max-height:0;overflow:hidden;
   transition:color .3s,max-height .3s,margin-top .3s;
 }
@@ -68,15 +68,19 @@ h1{font-family:'Noto Serif TC',serif;font-size:1.9rem;font-weight:700;letter-spa
 
 /* PANEL */
 .panel{
-  margin-top:20px;background:#161820;border:1px solid rgba(255,255,255,.07);
+  position:sticky;bottom:20px;
+  margin-top:20px;background:rgba(22,24,32,.92);border:1px solid rgba(255,255,255,.07);
   border-radius:14px;padding:16px 20px;
   opacity:0;transition:opacity .35s;min-height:56px;
+  backdrop-filter:blur(8px);
+  z-index:20;
 }
 .panel.visible{opacity:1}
-.panel-explain{font-size:.84rem;color:rgba(226,223,216,.72);line-height:2;letter-spacing:.03em}
+.panel-explain{font-size:1.01rem;color:rgba(226,223,216,.72);line-height:2;letter-spacing:.03em}
 </style>
 </head>
 <body>
+<canvas id="bgCanvas"></canvas>
 <div class="page">
 
 <header>
@@ -107,7 +111,6 @@ h1{font-family:'Noto Serif TC',serif;font-size:1.9rem;font-weight:700;letter-spa
 </div>
 
 <div class="map-wrap" id="mapWrap">
-  <canvas id="bgCanvas"></canvas>
   <canvas id="edgeCanvas"></canvas>
 </div>
 
@@ -177,13 +180,16 @@ const bgCtx=bgCv.getContext('2d');
 const edCv=document.getElementById('edgeCanvas');
 const edCtx=edCv.getContext('2d');
 
+let BW,BH;
 function resizeCanvases(){
   const wrap=document.getElementById('mapWrap');
   W=wrap.offsetWidth;
-  H=Math.max(500,W*0.72);
+  H=Math.max(560,W*0.72);
   wrap.style.height=H+'px';
-  bgCv.width=edCv.width=W;
-  bgCv.height=edCv.height=H;
+  BW=window.innerWidth;
+  BH=window.innerHeight;
+  bgCv.width=BW;bgCv.height=BH;
+  edCv.width=W;edCv.height=H;
 }
 
 // ── BACKGROUND PARTICLES ───────────────────────────────────────
@@ -192,10 +198,10 @@ let bgParticles=[];
 
 function spawnBgParticles(){
   bgParticles=[];
-  const n=Math.floor(W*H/4000);
+  const n=Math.floor(BW*BH/4000);
   for(let i=0;i<n;i++){
     bgParticles.push({
-      x:Math.random()*W,y:Math.random()*H,
+      x:Math.random()*BW,y:Math.random()*BH,
       vx:(Math.random()-.5)*.3,vy:(Math.random()-.5)*.3,
       r:Math.random()*1.4+.3,
       alpha:Math.random()*.35+.08,
@@ -207,12 +213,12 @@ function spawnBgParticles(){
 }
 
 function drawBg(){
-  bgCtx.clearRect(0,0,W,H);
+  bgCtx.clearRect(0,0,BW,BH);
   const dim=currentHover!==null;
   bgParticles.forEach(p=>{
     p.x+=p.vx;p.y+=p.vy;
-    if(p.x<0)p.x=W;if(p.x>W)p.x=0;
-    if(p.y<0)p.y=H;if(p.y>H)p.y=0;
+    if(p.x<0)p.x=BW;if(p.x>BW)p.x=0;
+    if(p.y<0)p.y=BH;if(p.y>BH)p.y=0;
     p.ph+=p.phSpd;
     const a=(p.alpha+Math.sin(p.ph)*.06)*(dim?.25:1);
     const hex=Math.floor(a*255).toString(16).padStart(2,'0');
