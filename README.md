@@ -35,7 +35,3 @@
 ## 使用方式
 
 直接用瀏覽器開啟 `index.html`，或前往上方的 GitHub Pages 連結，無需安裝任何套件。
-
----
-
-> 本專案由 [Claude](https://claude.ai)（Anthropic）AI 輔助設計與開發。
