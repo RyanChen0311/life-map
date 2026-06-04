@@ -4,7 +4,7 @@
 
 ## 線上展示
 
-[https://RyanChen0311.github.io/life-map/](https://RyanChen0311.github.io/life-map/)
+[https://ryanchen0311.github.io/life-map/](https://RyanChen0311.github.io/life-map/)
 
 ## 專案說明
 
