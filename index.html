@@ -8,17 +8,17 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-body{background:#0c0d10;color:#e2dfd8;font-family:'Noto Sans TC',sans-serif;font-weight:300;min-height:100vh;overflow-x:hidden}
-.page{position:relative;z-index:1;padding:36px 24px 24px;max-width:1280px;margin:0 auto}
+body{background:#000000;color:#e2dfd8;font-family:'Noto Sans TC',sans-serif;font-weight:300;min-height:100vh;overflow-x:hidden}
+.page{position:relative;z-index:1;padding:8px 24px 24px;max-width:1280px;margin:0 auto}
 
-header{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:28px;padding-bottom:18px;border-bottom:1px solid rgba(255,255,255,.07);flex-wrap:wrap;gap:12px}
+header{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid rgba(255,255,255,.07);flex-wrap:wrap;gap:12px}
 h1{font-family:'Noto Serif TC',serif;font-size:2.28rem;font-weight:700;letter-spacing:.06em}
 .sub{margin-top:4px;font-size:.86rem;color:rgba(226,223,216,.35);letter-spacing:.14em;text-transform:uppercase}
 .badge{display:flex;align-items:center;gap:7px;font-size:.91rem;color:#c9a84c;letter-spacing:.05em}
 .dot{width:7px;height:7px;border-radius:50%;background:#c9a84c;animation:bdot 2s ease-in-out infinite}
 @keyframes bdot{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.35;transform:scale(.6)}}
 
-.legend{display:flex;flex-wrap:wrap;gap:7px 20px;margin-bottom:24px;padding:4px 0;font-size:.84rem;color:rgba(226,223,216,.36)}
+.legend{display:flex;flex-wrap:wrap;gap:7px 20px;margin-bottom:8px;padding:4px 0;font-size:.84rem;color:rgba(226,223,216,.36)}
 .li{display:flex;align-items:center;gap:6px}
 .ld{width:8px;height:8px;border-radius:50%;flex-shrink:0}
 
@@ -60,14 +60,15 @@ h1{font-family:'Noto Serif TC',serif;font-size:2.28rem;font-weight:700;letter-sp
   border:none;background:transparent;backdrop-filter:none;
 }
 
-.n-icon-row{display:flex;align-items:center;gap:8px;margin-bottom:5px}
-.n-icon{width:28px;height:28px;border-radius:8px;background:var(--nd);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.n-icon-row{display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:5px}
+.n-icon{display:flex;align-items:center;justify-content:center;flex-shrink:0}
 .n-icon i{font-size:18px;color:var(--nc)}
 .n-title{font-family:'Noto Serif TC',serif;font-size:1.06rem;font-weight:700;color:#e2dfd8;letter-spacing:.04em;white-space:nowrap}
 .n-subdesc{
   font-size:.74rem;color:rgba(226,223,216,0);
   line-height:1.55;max-height:0;overflow:hidden;
   transition:color .3s,max-height .3s,margin-top .3s;
+  text-align:center;
 }
 .node-el.hovered .n-subdesc,.node-el.influenced .n-subdesc{
   color:rgba(226,223,216,.5);max-height:48px;margin-top:6px;
@@ -150,9 +151,9 @@ const EDGES=[
 ];
 
 const LAYOUT={
-  mindset:{px:.08,py:.72},habits:{px:.26,py:.56},social:{px:.08,py:.34},
-  health:{px:.46,py:.43},outdoor:{px:.27,py:.80},mentalh:{px:.27,py:.20},
-  knowledge:{px:.65,py:.18},career:{px:.78,py:.43},work:{px:.65,py:.68},finance:{px:.83,py:.74}
+  mindset:{px:.08,py:.65},habits:{px:.26,py:.49},social:{px:.08,py:.27},
+  health:{px:.46,py:.36},outdoor:{px:.27,py:.73},mentalh:{px:.27,py:.13},
+  knowledge:{px:.65,py:.11},career:{px:.78,py:.36},work:{px:.65,py:.61},finance:{px:.83,py:.67}
 };
 
 const EXPLAIN={
