@@ -53,6 +53,13 @@ h1{font-family:'Noto Serif TC',serif;font-size:2.28rem;font-weight:700;letter-sp
 }
 .node-el.dimmed{opacity:.2}
 
+.node-el.node-circle{
+  width:88px;height:88px;border-radius:50%;
+  padding:0;display:flex;align-items:center;justify-content:center;
+  font-size:2.2rem;
+  border:none;background:transparent;backdrop-filter:none;
+}
+
 .n-icon-row{display:flex;align-items:center;gap:8px;margin-bottom:5px}
 .n-icon{width:28px;height:28px;border-radius:8px;background:var(--nd);display:flex;align-items:center;justify-content:center;flex-shrink:0}
 .n-icon i{font-size:18px;color:var(--nc)}
@@ -68,12 +75,8 @@ h1{font-family:'Noto Serif TC',serif;font-size:2.28rem;font-weight:700;letter-sp
 
 /* PANEL */
 .panel{
-  position:sticky;bottom:20px;
-  margin-top:20px;background:rgba(22,24,32,.92);border:1px solid rgba(255,255,255,.07);
-  border-radius:14px;padding:16px 20px;
+  margin-bottom:16px;padding:4px 0;
   opacity:0;transition:opacity .35s;min-height:56px;
-  backdrop-filter:blur(8px);
-  z-index:20;
 }
 .panel.visible{opacity:1}
 .panel-explain{font-size:1.01rem;color:rgba(226,223,216,.72);line-height:2;letter-spacing:.03em}
@@ -95,7 +98,7 @@ h1{font-family:'Noto Serif TC',serif;font-size:2.28rem;font-weight:700;letter-sp
 </header>
 
 <div class="legend">
-  <div class="li"><div class="ld" style="background:#c9a84c"></div>核心系統</div>
+  <div class="li"><div class="ld" style="background:#ffd700"></div>核心系統</div>
   <div class="li"><div class="ld" style="background:#4db8a0"></div>身心健康</div>
   <div class="li"><div class="ld" style="background:#6ea8d8"></div>知識成長</div>
   <div class="li"><div class="ld" style="background:#9b84cc"></div>職涯發展</div>
@@ -110,12 +113,12 @@ h1{font-family:'Noto Serif TC',serif;font-size:2.28rem;font-weight:700;letter-sp
   </div>
 </div>
 
-<div class="map-wrap" id="mapWrap">
-  <canvas id="edgeCanvas"></canvas>
-</div>
-
 <div class="panel" id="panel">
   <div id="panel-content"></div>
+</div>
+
+<div class="map-wrap" id="mapWrap">
+  <canvas id="edgeCanvas"></canvas>
 </div>
 
 </div>
@@ -204,7 +207,7 @@ function spawnBgParticles(){
       x:Math.random()*BW,y:Math.random()*BH,
       vx:(Math.random()-.5)*.3,vy:(Math.random()-.5)*.3,
       r:Math.random()*1.4+.3,
-      alpha:Math.random()*.35+.08,
+      alpha:Math.random()*.50+.12,
       col:PCOLS[Math.floor(Math.random()*PCOLS.length)],
       ph:Math.random()*Math.PI*2,
       phSpd:Math.random()*.012+.004
@@ -220,7 +223,7 @@ function drawBg(){
     if(p.x<0)p.x=BW;if(p.x>BW)p.x=0;
     if(p.y<0)p.y=BH;if(p.y>BH)p.y=0;
     p.ph+=p.phSpd;
-    const a=(p.alpha+Math.sin(p.ph)*.06)*(dim?.25:1);
+    const a=(p.alpha+Math.sin(p.ph)*.084)*(dim?.25:1);
     const hex=Math.floor(a*255).toString(16).padStart(2,'0');
     bgCtx.beginPath();
     bgCtx.arc(p.x,p.y,p.r,0,Math.PI*2);
@@ -355,6 +358,29 @@ function drawEdges(){
     }
   });
   edCtx.globalAlpha=1;
+
+  if(currentHover==='health'){
+    NODES.forEach(nd=>{
+      if(nd.id==='health'||!nodeState[nd.id]) return;
+      const c1=getCenter(nd.id),c2=getCenter('health');
+      const p1=rectEdgePt(nd.id,c2.x,c2.y);
+      const p2=rectEdgePt('health',c1.x,c1.y);
+      const mx=(p1.x+p2.x)/2,my=(p1.y+p2.y)/2;
+      const dx=p2.x-p1.x,dy=p2.y-p1.y;
+      const cpx=mx+(-dy)*.15,cpy=my+dx*.15;
+      const col=nd.color;
+      edCtx.beginPath();
+      edCtx.moveTo(p1.x,p1.y);
+      edCtx.quadraticCurveTo(cpx,cpy,p2.x,p2.y);
+      edCtx.globalAlpha=.8;
+      edCtx.strokeStyle=col;
+      edCtx.lineWidth=1.8;
+      edCtx.setLineDash([]);
+      edCtx.stroke();
+      arrow(p2.x,p2.y,cpx,cpy,col,.8);
+    });
+    edCtx.globalAlpha=1;
+  }
 }
 
 // ── BUILD NODE ELEMENTS ────────────────────────────────────────
@@ -366,13 +392,18 @@ function buildNodes(){
     el.style.setProperty('--nc',n.color);
     el.style.setProperty('--nd',n.dim);
     el.style.setProperty('--ng',n.glow);
-    el.innerHTML=`
-      <div class="n-icon-row">
-        <div class="n-icon"><i class="ti ${n.icon}" aria-hidden="true"></i></div>
-        <div class="n-title">${n.title}</div>
-      </div>
-      <div class="n-subdesc">${n.subdesc}</div>
-    `;
+    if(n.id==='health'){
+      el.classList.add('node-circle');
+      el.innerHTML='😊';
+    } else {
+      el.innerHTML=`
+        <div class="n-icon-row">
+          <div class="n-icon"><i class="ti ${n.icon}" aria-hidden="true"></i></div>
+          <div class="n-title">${n.title}</div>
+        </div>
+        <div class="n-subdesc">${n.subdesc}</div>
+      `;
+    }
     el.addEventListener('mouseenter',()=>{
       clearTimeout(hoverTimer);
       hoverTimer=setTimeout(()=>activate(n.id),40);
@@ -391,7 +422,7 @@ function activate(id){
   if(currentHover===id)return;
   currentHover=id;
   const n=NODES.find(x=>x.id===id);
-  const aff=new Set(n.affects);
+  const aff=new Set(id==='health' ? NODES.map(x=>x.id).filter(x=>x!=='health') : n.affects);
 
   NODES.forEach(nd=>{
     const el=nodeEls[nd.id];
@@ -409,9 +440,15 @@ function activate(id){
     }
   });
 
-  document.getElementById('badge-txt').textContent='正在看：'+n.title;
-  document.getElementById('panel-content').innerHTML=`<p class="panel-explain">${EXPLAIN[id]||''}</p>`;
-  document.getElementById('panel').classList.add('visible');
+  if(id==='health'){
+    document.getElementById('badge-txt').textContent='宇宙的中心';
+    document.getElementById('panel-content').innerHTML='';
+    document.getElementById('panel').classList.remove('visible');
+  } else {
+    document.getElementById('badge-txt').textContent='正在看：'+n.title;
+    document.getElementById('panel-content').innerHTML=`<p class="panel-explain">${EXPLAIN[id]||''}</p>`;
+    document.getElementById('panel').classList.add('visible');
+  }
 }
 
 function deactivate(){
